@@ -49,12 +49,14 @@ export default function Dashboard() {
 
   return (
     <div>
-      <header style={{ padding: '14px 0', background: '#00020e' }}>
-        <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <img src="/logo.png" alt="Envero Digital" style={{ height: 26, width: 'auto', display: 'block' }} />
+      <header className="site-header">
+        <div className="container">
+          <img src="/logo.png" alt="Envero Digital" style={{ height: 26, width: 'auto' }} />
           <button onClick={handleLogout} className="btn btn-secondary">Log out</button>
         </div>
       </header>
+
+      <p className="tagline">Build &bull; Automate &bull; Grow</p>
 
       <div className="container" style={{ paddingTop: 40, paddingBottom: 40 }}>
         <h1 style={{ fontSize: 26, marginBottom: 4 }}>
@@ -62,7 +64,7 @@ export default function Dashboard() {
         </h1>
         <p style={{ color: '#6b7280', marginBottom: 32 }}>{session?.user?.email}</p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, marginBottom: 32 }}>
+        <div className="stats-grid">
           <div className="card">
             <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 8 }}>Plan</p>
             <p style={{ fontSize: 22, fontWeight: 600, textTransform: 'capitalize' }}>{client?.tier || 'tier1'}</p>

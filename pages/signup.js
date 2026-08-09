@@ -36,14 +36,15 @@ export default function Signup() {
 
   return (
     <div>
-      <header style={{ padding: '18px 0', background: '#00020e' }}>
-        <div className="container">
+      <header className="site-header">
+        <div className="container" style={{ justifyContent: 'center' }}>
           <Link href="/">
-            <img src="/logo.png" alt="Envero Digital" style={{ height: 28, width: 'auto', display: 'block' }} />
+            <img src="/logo.png" alt="Envero Digital" style={{ height: 28, width: 'auto' }} />
           </Link>
         </div>
       </header>
-      <div className="container" style={{ maxWidth: 420, paddingTop: 80 }}>
+      <p className="tagline">Build &bull; Automate &bull; Grow</p>
+      <div className="container" style={{ maxWidth: 420, paddingTop: 56 }}>
       <h1 style={{ fontSize: 28, marginBottom: 24 }}>Create your account</h1>
       <form onSubmit={handleSignup} className="card">
         <input

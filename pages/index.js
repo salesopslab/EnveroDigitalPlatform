@@ -22,20 +22,22 @@ const TIERS = [
 export default function Home() {
   return (
     <div>
-      <header style={{ padding: '18px 0', background: '#00020e' }}>
-        <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <img src="/logo.png" alt="Envero Digital" style={{ height: 30, width: 'auto', display: 'block' }} />
-          <div style={{ display: 'flex', gap: 12 }}>
+      <header className="site-header">
+        <div className="container">
+          <img src="/logo.png" alt="Envero Digital" style={{ height: 30, width: 'auto' }} />
+          <div className="nav-actions">
             <Link href="/login" className="btn btn-secondary">Log in</Link>
             <Link href="/signup" className="btn btn-primary">Get started</Link>
           </div>
         </div>
       </header>
 
-      <section style={{ padding: '80px 0', textAlign: 'center' }}>
+      <p className="tagline">Build &bull; Automate &bull; Grow</p>
+
+      <section className="hero">
         <div className="container">
-          <h1 style={{ fontSize: 42, marginBottom: 16 }}>AI-powered SEO pages, built for lead gen</h1>
-          <p style={{ fontSize: 18, color: '#6b7280', maxWidth: 600, margin: '0 auto 32px' }}>
+          <h1>AI-powered SEO pages, built for lead gen</h1>
+          <p>
             White-label content generation and programmatic SEO for agencies and lead gen companies. Launch hundreds of pages without a content team.
           </p>
           <Link href="/signup" className="btn btn-primary" style={{ fontSize: 16, padding: '14px 32px' }}>Start your trial</Link>
@@ -43,7 +45,7 @@ export default function Home() {
       </section>
 
       <section style={{ padding: '40px 0 100px' }}>
-        <div className="container" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+        <div className="container pricing-grid">
           {TIERS.map((tier) => (
             <div
               key={tier.name}
