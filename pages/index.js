@@ -22,9 +22,9 @@ const TIERS = [
 export default function Home() {
   return (
     <div>
-      <header style={{ padding: '20px 0', borderBottom: '1px solid #e5e7eb', background: 'white' }}>
+      <header style={{ padding: '18px 0', background: '#00020e' }}>
         <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <strong style={{ fontSize: 20 }}>EnveroDigital</strong>
+          <img src="/logo.png" alt="Envero Digital" style={{ height: 30, width: 'auto', display: 'block' }} />
           <div style={{ display: 'flex', gap: 12 }}>
             <Link href="/login" className="btn btn-secondary">Log in</Link>
             <Link href="/signup" className="btn btn-primary">Get started</Link>

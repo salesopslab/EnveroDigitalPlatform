@@ -28,7 +28,15 @@ export default function Login() {
   }
 
   return (
-    <div className="container" style={{ maxWidth: 420, paddingTop: 80 }}>
+    <div>
+      <header style={{ padding: '18px 0', background: '#00020e' }}>
+        <div className="container">
+          <Link href="/">
+            <img src="/logo.png" alt="Envero Digital" style={{ height: 28, width: 'auto', display: 'block' }} />
+          </Link>
+        </div>
+      </header>
+      <div className="container" style={{ maxWidth: 420, paddingTop: 80 }}>
       <h1 style={{ fontSize: 28, marginBottom: 24 }}>Log in</h1>
       <form onSubmit={handleLogin} className="card">
         <input
@@ -53,6 +61,7 @@ export default function Login() {
       <p style={{ marginTop: 16, fontSize: 14, color: '#6b7280' }}>
         Don&apos;t have an account? <Link href="/signup" style={{ color: '#4f46e5' }}>Sign up</Link>
       </p>
+      </div>
     </div>
   )
 }

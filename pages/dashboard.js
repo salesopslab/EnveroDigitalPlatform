@@ -49,9 +49,9 @@ export default function Dashboard() {
 
   return (
     <div>
-      <header style={{ padding: '16px 0', borderBottom: '1px solid #e5e7eb', background: 'white' }}>
+      <header style={{ padding: '14px 0', background: '#00020e' }}>
         <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <strong>EnveroDigital</strong>
+          <img src="/logo.png" alt="Envero Digital" style={{ height: 26, width: 'auto', display: 'block' }} />
           <button onClick={handleLogout} className="btn btn-secondary">Log out</button>
         </div>
       </header>
