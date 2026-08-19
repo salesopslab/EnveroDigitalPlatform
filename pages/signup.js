@@ -31,7 +31,10 @@ export default function Signup() {
       return
     }
 
-    router.push('/dashboard')
+    // New accounts land in the Business Brain onboarding wizard first,
+    // not the dashboard directly — the dashboard needs a business
+    // profile to be useful (opportunities/content generation reference it).
+    router.push('/business-brain')
   }
 
   return (

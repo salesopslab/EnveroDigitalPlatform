@@ -2,20 +2,33 @@
 
 White-label B2B SaaS dashboard for AI-generated SEO content and lead gen. This is the client-facing platform at enverodigital.com — separate from the [EnveroDigital](https://github.com/salesopslab/EnveroDigital) repo, which powers the newautopricer.com consumer SEO site.
 
-## What's built so far
+## What's built (Phase 1)
 
 - Marketing/pricing landing page (`pages/index.js`)
-- Signup / login using Supabase Auth (`pages/signup.js`, `pages/login.js`)
-- Protected client dashboard shell (`pages/dashboard.js`)
-- Database schema for clients, tiers, pages, social content, and leads (`supabase/schema.sql`), with row-level security so each client only sees their own data
+- Signup / login using Supabase Auth (`pages/signup.js`, `pages/login.js`) — new signups land in onboarding, not the dashboard
+- App shell with left nav (`components/AppShell.js`) wrapping every authenticated page
+- **Business Brain** onboarding + editable profile (`pages/business-brain.js`), with a "analyze my website" AI suggestion step (`pages/api/analyze-business.js`)
+- **Growth Dashboard** (`pages/dashboard.js`) — KPI cards, opportunity summary, recommended actions. Organic Visitors and page-level traffic are stubbed pending a Google Analytics integration (Phase 2); everything else is computed from real Supabase data.
+- **Opportunity Engine** (`pages/opportunities.js`) — AI-generated opportunities (`pages/api/generate-opportunities.js`), filterable table, approve/create flow
+- **Content Engine** (`pages/content/`) — AI content generation (`pages/api/generate-content.js`), rule-based SEO Score (`lib/seoScore.js`, structure/completeness based, not keyword density), draft/approve/schedule/publish, and **Content Multiplier** (`pages/api/multiply-content.js`) to spin off social/video/email/SMS derivatives
+- **Content Calendar** (`pages/calendar.js`) — month view + backlog, Auto-Pilot toggle UI (scheduling logic itself is Phase 3)
+- **Social** (`pages/social.js`) — UI shell for connected platforms + generated social content feed (real OAuth publishing is Phase 2)
+- **Lead Center** (`pages/leads.js`) — status pipeline, editable lead value/notes; public capture endpoint at `pages/api/leads.js`
+- **Basic Analytics** (`pages/analytics.js`) — content → leads → sales → revenue attribution (traffic column stubbed pending GA)
+- Database schema for clients, tiers, opportunities, unified content items, leads, and vertical playbooks (`supabase/schema.sql` + `supabase/migrations/002_phase1.sql`), with row-level security so each client only sees their own data
 - Auto-creates a `clients` row (trialing, tier1) whenever someone signs up
+- Vertical playbook seed data for automotive, home services, insurance, and legal (`supabase/migrations/002_phase1.sql`), plus a NationalCarDeals demo opportunity seed (`supabase/seed_demo.sql`)
 
-## Not built yet
+## Not built yet (Phase 2/3, per the build spec)
 
-- AI content generation UI (Claude API wiring)
-- Subdomain routing (`client1.enverodigital.com`)
 - Stripe billing
-- Multi-platform social content generation
+- Real social platform OAuth + publishing
+- Google Search Console / Analytics / Business Profile integrations
+- CRM / email / SMS integrations
+- Subdomain routing (`client1.enverodigital.com`)
+- Automated opportunity discovery, revenue-driven auto-optimization, Auto-Pilot's actual scheduling logic
+- AI Assistant chat panel
+- Drag-and-drop calendar rescheduling (click-to-reschedule works today)
 - White-label client portal customization
 - Namecheap/GoDaddy affiliate integration
 
@@ -26,10 +39,10 @@ White-label B2B SaaS dashboard for AI-generated SEO content and lead gen. This i
 npm install
 ```
 
-### 2. Create a Supabase project
-1. Go to [supabase.com](https://supabase.com) and create a new project
-2. In the SQL Editor, run `supabase/schema.sql` to set up all tables and security policies
-3. Go to Project Settings → API and copy the Project URL, anon key, and service_role key
+### 2. Run the Phase 1 migration
+1. Make sure `supabase/schema.sql` has already been run once (existing setup)
+2. In the Supabase SQL Editor, run `supabase/migrations/002_phase1.sql`
+3. Optionally run `supabase/seed_demo.sql` (edit the `:client_id` placeholder first) to seed the NationalCarDeals demo opportunities
 
 ### 3. Set up environment variables
 ```bash
@@ -42,6 +55,8 @@ Fill in the Supabase and Anthropic values in `.env.local`.
 npm run dev
 # Visit http://localhost:3000
 ```
+
+Suggested smoke test: sign up a fresh account → Business Brain onboarding saves and redirects to the dashboard → "Generate opportunities" produces rows on `/opportunities` → "Create content" on one produces a draft with a visible SEO score on `/content/[id]` → Approve → Schedule shows it on `/calendar` → posting to `/api/leads` (or inserting a row manually) shows up on `/leads` and `/analytics`.
 
 ## Deploy to Netlify
 

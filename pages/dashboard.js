@@ -1,89 +1,180 @@
+// ============================================================
+// GROWTH DASHBOARD
+// ============================================================
+
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
+import Link from 'next/link'
+import AppShell from '../components/AppShell'
+import { useRequireSession } from '../lib/useSession'
 import { supabase } from '../lib/supabaseClient'
+
+const RANGES = [
+  { key: 7, label: 'Last 7 days' },
+  { key: 30, label: 'Last 30 days' },
+  { key: 90, label: 'Last 90 days' },
+]
+
+const OPP_BUCKETS = [
+  { key: 'high_intent', label: 'High Intent', test: (o) => o.search_intent === 'transactional' },
+  { key: 'easy_wins', label: 'Easy Wins', test: (o) => (o.difficulty || 100) <= 35 },
+  { key: 'local', label: 'Local Opportunities', test: (o) => Boolean(o.market) },
+  { key: 'comparison', label: 'Comparison Content', test: (o) => o.content_type === 'comparison_page' },
+  { key: 'faq', label: 'Questions / FAQs', test: (o) => o.content_type === 'faq' },
+]
 
 export default function Dashboard() {
   const router = useRouter()
-  const [session, setSession] = useState(null)
-  const [client, setClient] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const { client, session, loading, logout } = useRequireSession()
+  const [range, setRange] = useState(30)
+  const [leads, setLeads] = useState([])
+  const [content, setContent] = useState([])
+  const [opportunities, setOpportunities] = useState([])
+  const [dataLoading, setDataLoading] = useState(true)
+  const [generating, setGenerating] = useState(false)
 
   useEffect(() => {
-    async function loadSession() {
-      const { data: { session: currentSession } } = await supabase.auth.getSession()
-
-      if (!currentSession) {
-        router.replace('/login')
-        return
-      }
-
-      setSession(currentSession)
-
-      const { data: clientRow } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('id', currentSession.user.id)
-        .single()
-
-      setClient(clientRow)
-      setLoading(false)
+    if (!client) return
+    if (client.onboarded === false) {
+      router.replace('/business-brain')
+      return
     }
+    loadData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [client, range])
 
-    loadSession()
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      if (!newSession) router.replace('/login')
-    })
-
-    return () => authListener.subscription.unsubscribe()
-  }, [router])
-
-  async function handleLogout() {
-    await supabase.auth.signOut()
-    router.replace('/login')
+  async function loadData() {
+    setDataLoading(true)
+    const since = new Date(Date.now() - range * 24 * 60 * 60 * 1000).toISOString()
+    const [{ data: leadRows }, { data: contentRows }, { data: oppRows }] = await Promise.all([
+      supabase.from('leads').select('*').eq('client_id', client.id).gte('captured_at', since),
+      supabase.from('content_items').select('*').eq('client_id', client.id),
+      supabase.from('opportunities').select('*').eq('client_id', client.id).in('status', ['new', 'approved']),
+    ])
+    setLeads(leadRows || [])
+    setContent(contentRows || [])
+    setOpportunities(oppRows || [])
+    setDataLoading(false)
   }
 
-  if (loading) {
-    return <div className="container" style={{ paddingTop: 80 }}>Loading...</div>
+  async function generateOpportunities() {
+    setGenerating(true)
+    try {
+      const res = await fetch('/api/generate-opportunities', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: client.id }),
+      })
+      if (!res.ok) throw new Error((await res.json()).error)
+      await loadData()
+    } catch (err) {
+      alert(err.message)
+    } finally {
+      setGenerating(false)
+    }
   }
+
+  if (loading || !client) return <div className="container" style={{ paddingTop: 80 }}>Loading...</div>
+
+  const publishedInRange = content.filter((c) => c.published_at && new Date(c.published_at) >= new Date(Date.now() - range * 86400000))
+  const soldLeads = leads.filter((l) => l.status === 'sold')
+  const estRevenue = soldLeads.reduce((sum, l) => sum + (Number(l.lead_value) || 0), 0)
+  const estLeadValue = leads.length > 0
+    ? Math.round((estRevenue || leads.length * (Number(client.approx_customer_value) || 0)) / leads.length)
+    : 0
+  const conversionRate = content.length > 0 ? ((leads.length / Math.max(publishedInRange.length, 1)) * 100).toFixed(1) : '—'
+
+  const topOpportunities = [...opportunities]
+    .sort((a, b) => (b.opportunity_score || 0) - (a.opportunity_score || 0))
+    .slice(0, 5)
 
   return (
-    <div>
-      <header className="site-header">
-        <div className="container">
-          <img src="/logo.png" alt="Envero Digital" style={{ height: 26, width: 'auto' }} />
-          <button onClick={handleLogout} className="btn btn-secondary">Log out</button>
+    <AppShell client={client} onLogout={logout}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <h1 style={{ fontSize: 26 }}>Welcome{client.company_name ? `, ${client.company_name}` : ''}</h1>
+          <p style={{ color: '#6b7280' }}>{session?.user?.email}</p>
         </div>
-      </header>
-
-      <p className="tagline">Build &bull; Automate &bull; Grow</p>
-
-      <div className="container" style={{ paddingTop: 40, paddingBottom: 40 }}>
-        <h1 style={{ fontSize: 26, marginBottom: 4 }}>
-          Welcome{client?.company_name ? `, ${client.company_name}` : ''}
-        </h1>
-        <p style={{ color: '#6b7280', marginBottom: 32 }}>{session?.user?.email}</p>
-
-        <div className="stats-grid">
-          <div className="card">
-            <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 8 }}>Plan</p>
-            <p style={{ fontSize: 22, fontWeight: 600, textTransform: 'capitalize' }}>{client?.tier || 'tier1'}</p>
-          </div>
-          <div className="card">
-            <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 8 }}>Status</p>
-            <p style={{ fontSize: 22, fontWeight: 600, textTransform: 'capitalize' }}>{client?.status || 'trialing'}</p>
-          </div>
-          <div className="card">
-            <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 8 }}>Pages generated</p>
-            <p style={{ fontSize: 22, fontWeight: 600 }}>0</p>
-          </div>
-        </div>
-
-        <div className="card">
-          <h2 style={{ fontSize: 18, marginBottom: 8 }}>Content generator</h2>
-          <p style={{ color: '#6b7280' }}>Coming next — AI-generated SEO pages and social content will live here.</p>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {RANGES.map((r) => (
+            <button
+              key={r.key}
+              onClick={() => setRange(r.key)}
+              className={`btn ${range === r.key ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ fontSize: 13, padding: '8px 14px' }}
+            >
+              {r.label}
+            </button>
+          ))}
         </div>
       </div>
+
+      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginTop: 24 }}>
+        <StatCard label="Organic Visitors" value="— connect Google Analytics" small />
+        <StatCard label="Leads Generated" value={leads.length} />
+        <StatCard label="Content Published" value={publishedInRange.length} />
+        <StatCard label="Conversion Rate" value={conversionRate === '—' ? '—' : `${conversionRate}%`} />
+        <StatCard label="Estimated Lead Value" value={estLeadValue ? `$${estLeadValue.toLocaleString()}` : '—'} />
+        <StatCard label="Estimated Revenue" value={`$${estRevenue.toLocaleString()}`} />
+      </div>
+
+      <div className="card" style={{ marginTop: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h2 style={{ fontSize: 18 }}>Growth Opportunities</h2>
+          <Link href="/opportunities" className="btn btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }}>View Opportunities</Link>
+        </div>
+        {dataLoading ? <p style={{ color: '#6b7280' }}>Loading…</p> : opportunities.length === 0 ? (
+          <div>
+            <p style={{ color: '#6b7280', marginBottom: 12 }}>No opportunities yet.</p>
+            <button className="btn btn-primary" onClick={generateOpportunities} disabled={generating}>
+              {generating ? 'Generating…' : 'Generate opportunities'}
+            </button>
+          </div>
+        ) : (
+          <>
+            <p style={{ fontWeight: 600, marginBottom: 12 }}>{opportunities.length} opportunities discovered</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+              {OPP_BUCKETS.map((b) => (
+                <div key={b.key} style={{ textAlign: 'center', padding: '12px 8px', background: '#f7f8fa', borderRadius: 8 }}>
+                  <p style={{ fontSize: 22, fontWeight: 700 }}>{opportunities.filter(b.test).length}</p>
+                  <p style={{ fontSize: 12, color: '#6b7280' }}>{b.label}</p>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="card" style={{ marginTop: 24 }}>
+        <h2 style={{ fontSize: 18, marginBottom: 16 }}>Recommended Actions</h2>
+        {topOpportunities.length === 0 ? (
+          <p style={{ color: '#6b7280' }}>Generate opportunities above to get recommendations.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {topOpportunities.map((o) => (
+              <div key={o.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderTop: '1px solid #e5e7eb' }}>
+                <div>
+                  <p style={{ fontWeight: 600 }}>{o.keyword}</p>
+                  <p style={{ fontSize: 13, color: '#6b7280' }}>
+                    Impact: {o.opportunity_score >= 75 ? 'High' : o.opportunity_score >= 50 ? 'Medium' : 'Low'} ·
+                    {' '}Difficulty: {o.difficulty >= 60 ? 'Hard' : o.difficulty >= 30 ? 'Medium' : 'Easy'} ·
+                    {' '}{o.content_type.replace('_', ' ')}
+                  </p>
+                </div>
+                <Link href={`/opportunities?highlight=${o.id}`} className="btn btn-primary" style={{ fontSize: 13, padding: '8px 14px' }}>Approve / Create</Link>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </AppShell>
+  )
+}
+
+function StatCard({ label, value, small }) {
+  return (
+    <div className="card">
+      <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 8 }}>{label}</p>
+      <p style={{ fontSize: small ? 15 : 22, fontWeight: 600, color: small ? '#9ca3af' : 'inherit' }}>{value}</p>
     </div>
   )
 }
