@@ -9,7 +9,10 @@
 
 [build.environment]
   NODE_VERSION = "18"
-  NPM_VERSION = "9"
+  # NPM_VERSION intentionally left unpinned — Netlify's default npm for
+  # Node 18 (10.8.2 as of this writing) can read the package-lock.json
+  # committed to this repo; forcing npm 9 made it choke with a vague
+  # "Invalid Version:" error before install even started.
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
