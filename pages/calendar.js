@@ -45,10 +45,15 @@ export default function Calendar() {
 
   const monthStart = startOfMonth(cursor)
   const numDays = daysInMonth(cursor)
-  const backlog = items.filter((i) => !i.scheduled_at)
+  // A published item may never have gone through the scheduling step (the
+  // editor's Publish button works straight from "approved"), so it only has
+  // published_at set. Show it on the grid using whichever date it has —
+  // only items with neither belong in the backlog.
+  const displayDate = (i) => i.scheduled_at || i.published_at
+  const backlog = items.filter((i) => !displayDate(i))
   const byDay = {}
-  items.filter((i) => i.scheduled_at).forEach((i) => {
-    const d = new Date(i.scheduled_at)
+  items.filter((i) => displayDate(i)).forEach((i) => {
+    const d = new Date(displayDate(i))
     if (d.getMonth() === cursor.getMonth() && d.getFullYear() === cursor.getFullYear()) {
       const key = d.getDate()
       byDay[key] = byDay[key] || []

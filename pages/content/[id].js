@@ -92,7 +92,7 @@ export default function ContentEditor() {
 
   if (loading || !client || !item) return <div className="container" style={{ paddingTop: 80 }}>Loading...</div>
 
-  const { score, checks } = computeSeoScore(item)
+  const { score, checks, label } = computeSeoScore(item)
 
   return (
     <AppShell client={client} onLogout={logout}>
@@ -186,7 +186,7 @@ export default function ContentEditor() {
 
         <div style={{ flex: '1 1 260px', minWidth: 240 }}>
           <div className="card">
-            <p style={{ fontWeight: 600, marginBottom: 4 }}>SEO Score</p>
+            <p style={{ fontWeight: 600, marginBottom: 4 }}>{label}</p>
             <p style={{ fontSize: 32, fontWeight: 700, marginBottom: 12 }}>{score}/100</p>
             {checks.map((c) => (
               <div key={c.label} style={{ display: 'flex', gap: 8, marginBottom: 10, fontSize: 13 }}>

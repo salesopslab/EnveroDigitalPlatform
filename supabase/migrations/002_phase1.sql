@@ -71,8 +71,11 @@ create policy "Clients can manage their own opportunities"
 -- Replaces `pages` and `social_content`. Safe to drop: no real
 -- client content exists yet on either table.
 -- ------------------------------------------------------------
-drop table if exists social_content;
-drop table if exists pages;
+-- cascade: the old `leads.page_id` foreign key points at `pages`, so a
+-- plain DROP TABLE is rejected until that link is removed too. Safe here
+-- since leads gets `content_item_id` as its replacement link below.
+drop table if exists social_content cascade;
+drop table if exists pages cascade;
 
 create table if not exists content_items (
   id uuid primary key default gen_random_uuid(),
