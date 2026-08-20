@@ -32,6 +32,7 @@ export default function Dashboard() {
   const [opportunities, setOpportunities] = useState([])
   const [dataLoading, setDataLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
+  const [gaData, setGaData] = useState(null)
 
   useEffect(() => {
     if (!client) return
@@ -40,8 +41,21 @@ export default function Dashboard() {
       return
     }
     loadData()
+    loadGoogleAnalytics()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client, range])
+
+  async function loadGoogleAnalytics() {
+    try {
+      const res = await fetch('/api/google-analytics', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: client.id, days: range }),
+      })
+      setGaData(await res.json())
+    } catch {
+      setGaData({ connected: true, error: 'Could not reach Google Analytics.' })
+    }
+  }
 
   async function loadData() {
     setDataLoading(true)
@@ -109,7 +123,17 @@ export default function Dashboard() {
       </div>
 
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginTop: 24 }}>
-        <StatCard label="Organic Visitors" value="— connect Google Analytics" small />
+        <StatCard
+          label="Organic Visitors"
+          value={
+            !gaData || !gaData.connected
+              ? <Link href="/integrations" style={{ color: '#9ca3af', fontSize: 15 }}>— connect Google Analytics</Link>
+              : gaData.error
+                ? <span style={{ color: '#9ca3af', fontSize: 14 }}>{gaData.error}</span>
+                : gaData.organicUsers.toLocaleString()
+          }
+          small={!gaData || !gaData.connected || Boolean(gaData.error)}
+        />
         <StatCard label="Leads Generated" value={leads.length} />
         <StatCard label="Content Published" value={publishedInRange.length} />
         <StatCard label="Conversion Rate" value={conversionRate === '—' ? '—' : `${conversionRate}%`} />

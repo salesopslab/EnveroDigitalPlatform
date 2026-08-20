@@ -1,7 +1,9 @@
 // ============================================================
 // BASIC ANALYTICS — Content → Leads → Sales → Revenue
-// Traffic is stubbed pending Google Analytics (Phase 2); leads
-// and revenue are real, computed from the leads table.
+// Leads/revenue are real (Supabase). Site-wide traffic is real
+// too, via Search Console. Per-content-item traffic stays stubbed
+// until generated content is published as real crawlable pages
+// (Phase 3 subdomain routing) — see pages/api/google-search-console.js.
 // ============================================================
 
 import { useEffect, useState } from 'react'
@@ -12,6 +14,7 @@ import { supabase } from '../lib/supabaseClient'
 export default function Analytics() {
   const { client, loading, logout } = useRequireSession()
   const [rows, setRows] = useState([])
+  const [gscData, setGscData] = useState(null)
 
   useEffect(() => {
     if (!client) return
@@ -28,6 +31,11 @@ export default function Analytics() {
       }).sort((a, b) => b.revenue - a.revenue)
       setRows(combined)
     })()
+
+    fetch('/api/google-search-console', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId: client.id, days: 30 }),
+    }).then((r) => r.json()).then(setGscData).catch(() => setGscData({ connected: true, error: 'Could not reach Search Console.' }))
   }, [client])
 
   if (loading || !client) return <div className="container" style={{ paddingTop: 80 }}>Loading...</div>
@@ -37,6 +45,23 @@ export default function Analytics() {
   return (
     <AppShell client={client} onLogout={logout}>
       <h1 style={{ fontSize: 24, marginBottom: 20 }}>Analytics</h1>
+
+      {gscData?.connected && !gscData.error && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <p style={{ fontWeight: 600, marginBottom: 12 }}>Site-wide search performance (last 30 days, via Search Console)</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 12 }}>
+            <MiniStat label="Clicks" value={gscData.clicks.toLocaleString()} />
+            <MiniStat label="Impressions" value={gscData.impressions.toLocaleString()} />
+            <MiniStat label="Avg. CTR" value={`${(gscData.ctr * 100).toFixed(1)}%`} />
+            <MiniStat label="Avg. Position" value={gscData.position.toFixed(1)} />
+          </div>
+        </div>
+      )}
+      {gscData?.connected && gscData.error && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <p style={{ color: '#9ca3af', fontSize: 13 }}>Search Console: {gscData.error}</p>
+        </div>
+      )}
 
       {topPerformer && topPerformer.revenue > 0 && (
         <div className="card" style={{ marginBottom: 20, background: '#eef2ff', border: '1px solid #c7d2fe' }}>
@@ -57,7 +82,7 @@ export default function Analytics() {
               {rows.map((r) => (
                 <tr key={r.id}>
                   <td>{r.title || 'Untitled'}</td>
-                  <td style={{ color: '#9ca3af' }}>— connect GA</td>
+                  <td style={{ color: '#9ca3af' }} title="Per-page traffic needs this content published as a real, crawlable page — coming in Phase 3.">— needs published pages</td>
                   <td>{r.leadCount}</td>
                   <td>{r.soldCount}</td>
                   <td>${r.revenue.toLocaleString()}</td>
@@ -68,5 +93,14 @@ export default function Analytics() {
         </div>
       )}
     </AppShell>
+  )
+}
+
+function MiniStat({ label, value }) {
+  return (
+    <div style={{ textAlign: 'center', padding: '10px 8px', background: '#f7f8fa', borderRadius: 8 }}>
+      <p style={{ fontSize: 20, fontWeight: 700 }}>{value}</p>
+      <p style={{ fontSize: 12, color: '#6b7280' }}>{label}</p>
+    </div>
   )
 }
