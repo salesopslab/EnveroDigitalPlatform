@@ -1,8 +1,10 @@
 // ============================================================
 // INTEGRATIONS
 // Google Analytics + Search Console are real (Phase 2, shared
-// service account model — see lib/googleAuth.js). Everything
-// else is still a Phase 3 placeholder.
+// service account model — see lib/googleAuth.js). Lead Webhook is
+// also real (Phase 2, generic outbound webhook — see
+// lib/webhookDelivery.js) rather than a bespoke per-CRM integration.
+// Everything else is still a Phase 3 placeholder.
 // ============================================================
 
 import { useEffect, useState } from 'react'
@@ -13,8 +15,6 @@ import { supabase } from '../lib/supabaseClient'
 const COMING_SOON = [
   { name: 'Google Business Profile', desc: 'Publish posts directly' },
   { name: 'WordPress / CMS', desc: 'Publish generated pages to your own site' },
-  { name: 'CRM', desc: 'Sync leads to your sales pipeline' },
-  { name: 'Email / SMS', desc: 'Send generated email and SMS content' },
 ]
 
 const SERVICE_ACCOUNT_EMAIL = process.env.NEXT_PUBLIC_GOOGLE_SERVICE_ACCOUNT_EMAIL || '(not configured)'
@@ -26,11 +26,51 @@ export default function Integrations() {
   const [testing, setTesting] = useState(false)
   const [result, setResult] = useState(null)
 
+  const [webhookUrl, setWebhookUrl] = useState('')
+  const [webhookSaving, setWebhookSaving] = useState(false)
+  const [webhookResult, setWebhookResult] = useState(null)
+  const [deliveries, setDeliveries] = useState([])
+
   useEffect(() => {
     if (!client) return
     setGa4PropertyId(client.ga4_property_id || '')
     setGscSiteUrl(client.gsc_site_url || '')
+    setWebhookUrl(client.lead_webhook_url || '')
+    loadDeliveries()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client])
+
+  async function loadDeliveries() {
+    const { data } = await supabase
+      .from('webhook_deliveries')
+      .select('*')
+      .eq('client_id', session.user.id)
+      .order('created_at', { ascending: false })
+      .limit(5)
+    setDeliveries(data || [])
+  }
+
+  async function saveAndTestWebhook() {
+    setWebhookSaving(true)
+    setWebhookResult(null)
+    try {
+      await supabase.from('clients').update({ lead_webhook_url: webhookUrl || null }).eq('id', session.user.id)
+      await reloadClient(session.user.id)
+
+      if (webhookUrl) {
+        const res = await fetch('/api/webhook-test', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clientId: session.user.id }),
+        })
+        setWebhookResult(await res.json())
+        await loadDeliveries()
+      }
+    } catch (err) {
+      setWebhookResult({ error: err.message })
+    } finally {
+      setWebhookSaving(false)
+    }
+  }
 
   async function saveAndTest() {
     setTesting(true)
@@ -108,6 +148,44 @@ export default function Integrations() {
       <button className="btn btn-primary" onClick={saveAndTest} disabled={testing} style={{ marginBottom: 24 }}>
         {testing ? 'Testing…' : 'Save & Test'}
       </button>
+
+      <div className="card" style={{ marginBottom: 24, maxWidth: 560 }}>
+        <p style={{ fontWeight: 600, marginBottom: 6 }}>Lead Webhook (CRM / Email / SMS)</p>
+        <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 12 }}>
+          Sends every new lead as JSON to one URL the instant it's captured — point it at a Zapier
+          "Catch Hook", Make, your CRM's inbound webhook trigger, or your own endpoint. Works with
+          any tool, no per-CRM setup needed on our end.
+        </p>
+        <label className="field-label">Webhook URL</label>
+        <input
+          value={webhookUrl}
+          onChange={(e) => setWebhookUrl(e.target.value)}
+          placeholder="https://hooks.zapier.com/hooks/catch/..."
+        />
+        <button className="btn btn-primary" onClick={saveAndTestWebhook} disabled={webhookSaving} style={{ marginTop: 12 }}>
+          {webhookSaving ? 'Testing…' : 'Save & Test'}
+        </button>
+        {client.lead_webhook_url && !webhookResult && <p style={{ fontSize: 12, color: '#166534', marginTop: 8 }}>Connected ✓</p>}
+        {webhookResult && (
+          <p style={{ fontSize: 12, color: webhookResult.success ? '#166534' : '#dc2626', marginTop: 8 }}>
+            {webhookResult.success
+              ? 'Test event delivered ✓'
+              : webhookResult.error || 'Delivery failed'}
+          </p>
+        )}
+
+        {deliveries.length > 0 && (
+          <div style={{ marginTop: 16, borderTop: '1px solid #e5e7eb', paddingTop: 12 }}>
+            <p style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 8 }}>Recent deliveries</p>
+            {deliveries.map((d) => (
+              <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0', color: d.success ? '#166534' : '#dc2626' }}>
+                <span>{d.event}{d.status_code ? ` · ${d.status_code}` : ''}{d.error ? ` · ${d.error}` : ''}</span>
+                <span style={{ color: '#9ca3af' }}>{new Date(d.created_at).toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
         {COMING_SOON.map((i) => (

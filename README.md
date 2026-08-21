@@ -16,7 +16,8 @@ White-label B2B SaaS dashboard for AI-generated SEO content and lead gen. This i
 - **Lead Center** (`pages/leads.js`) — status pipeline, editable lead value/notes; public capture endpoint at `pages/api/leads.js`
 - **Basic Analytics** (`pages/analytics.js`) — content → leads → sales → revenue attribution, plus a real site-wide Search Console summary (clicks/impressions/CTR/position). Per-content-item traffic stays stubbed — it needs the content published as a real crawlable page, which is Phase 3 subdomain routing, not something Google can report on yet.
 - **Google Analytics + Search Console** (`pages/integrations.js`, `lib/googleAuth.js`, `pages/api/google-*.js`) — shared service account model: you create one Google Cloud service account, each client grants it Viewer/user access to their own GA4 property and Search Console site (no per-client OAuth, no token refresh). See Setup below.
-- Database schema for clients, tiers, opportunities, unified content items, leads, and vertical playbooks (`supabase/schema.sql` + `supabase/migrations/002_phase1.sql` + `supabase/migrations/003_google_integrations.sql`), with row-level security so each client only sees their own data
+- **Lead Webhook / CRM & Email & SMS distribution** (`pages/integrations.js`, `lib/webhookDelivery.js`, `pages/api/webhook-test.js`) — a generic outbound webhook rather than bespoke per-CRM OAuth integrations: each client points us at one URL (a Zapier "Catch Hook", Make, their CRM's inbound webhook trigger, or their own endpoint), and every new lead POSTs there as JSON the instant `pages/api/leads.js` captures it. Delivery attempts (success/failure, status code) are logged to `webhook_deliveries` and shown on the Integrations page.
+- Database schema for clients, tiers, opportunities, unified content items, leads, and vertical playbooks (`supabase/schema.sql` + `supabase/migrations/002_phase1.sql` + `supabase/migrations/003_google_integrations.sql` + `supabase/migrations/005_lead_webhooks.sql`), with row-level security so each client only sees their own data
 - Auto-creates a `clients` row (trialing, tier1) whenever someone signs up
 - Vertical playbook seed data for automotive, home services, insurance, and legal (`supabase/migrations/002_phase1.sql`), plus a NationalCarDeals demo opportunity seed (`supabase/seed_demo.sql`)
 
@@ -24,8 +25,7 @@ White-label B2B SaaS dashboard for AI-generated SEO content and lead gen. This i
 
 - Stripe billing
 - Real social platform OAuth + publishing
-- Google Business Profile integration
-- CRM / email / SMS integrations
+- Google Business Profile integration (needs Google's manual API access approval — submitted separately from dev work, see notes in code once approved)
 - Subdomain routing (`client1.enverodigital.com`)
 - Automated opportunity discovery, revenue-driven auto-optimization, Auto-Pilot's actual scheduling logic
 - AI Assistant chat panel
@@ -45,7 +45,8 @@ npm install
 2. In the Supabase SQL Editor, run `supabase/migrations/002_phase1.sql`
 3. Then run `supabase/migrations/003_google_integrations.sql`
 4. Then run `supabase/migrations/004_enable_rls.sql` (fixes the "RLS Disabled in Public" Advisor warnings on `tier_limits` and `vertical_playbooks`)
-5. Optionally run `supabase/seed_demo.sql` (edit the `:client_id` placeholder first) to seed the NationalCarDeals demo opportunities
+5. Then run `supabase/migrations/005_lead_webhooks.sql` (adds `clients.lead_webhook_url` and the `webhook_deliveries` log table)
+6. Optionally run `supabase/seed_demo.sql` (edit the `:client_id` placeholder first) to seed the NationalCarDeals demo opportunities
 
 ### 3. Set up environment variables
 ```bash
@@ -59,7 +60,7 @@ npm run dev
 # Visit http://localhost:3000
 ```
 
-Suggested smoke test: sign up a fresh account → Business Brain onboarding saves and redirects to the dashboard → "Generate opportunities" produces rows on `/opportunities` → "Create content" on one produces a draft with a visible SEO score on `/content/[id]` → Approve → Schedule shows it on `/calendar` → posting to `/api/leads` (or inserting a row manually) shows up on `/leads` and `/analytics` → on `/integrations`, paste a GA4 Property ID and Search Console Site URL and confirm "Save & Test" reports success, then confirm real numbers show up on `/dashboard` and `/analytics`.
+Suggested smoke test: sign up a fresh account → Business Brain onboarding saves and redirects to the dashboard → "Generate opportunities" produces rows on `/opportunities` → "Create content" on one produces a draft with a visible SEO score on `/content/[id]` → Approve → Schedule shows it on `/calendar` → posting to `/api/leads` (or inserting a row manually) shows up on `/leads` and `/analytics` → on `/integrations`, paste a GA4 Property ID and Search Console Site URL and confirm "Save & Test" reports success, then confirm real numbers show up on `/dashboard` and `/analytics` → still on `/integrations`, paste a Zapier "Catch Hook" (or webhook.site) URL into Lead Webhook, click "Save & Test", confirm it shows "Test event delivered ✓" and the test payload actually arrived at the URL, then submit another lead via `/api/leads` and confirm that one arrives too.
 
 ## Deploy to Netlify
 

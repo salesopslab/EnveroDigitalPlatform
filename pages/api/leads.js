@@ -7,6 +7,7 @@
 // ============================================================
 
 import { supabaseAdmin } from '../../lib/supabaseAdmin'
+import { deliverWebhook } from '../../lib/webhookDelivery'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -38,5 +39,28 @@ export default async function handler(req, res) {
     .single()
 
   if (error) return res.status(500).json({ error: error.message })
+
+  // Fire the client's lead webhook, if they've configured one (see
+  // /integrations — generic CRM/ESP/SMS distribution via Zapier, Make,
+  // or their own endpoint). This never blocks or fails the response to
+  // whoever submitted the lead — deliverWebhook logs the outcome to
+  // webhook_deliveries instead of throwing.
+  const { data: clientRow } = await supabaseAdmin
+    .from('clients')
+    .select('lead_webhook_url')
+    .eq('id', clientId)
+    .single()
+
+  if (clientRow?.lead_webhook_url) {
+    await deliverWebhook({
+      supabaseAdmin,
+      clientId,
+      url: clientRow.lead_webhook_url,
+      event: 'lead.created',
+      leadId: inserted.id,
+      payload: { lead: inserted },
+    })
+  }
+
   res.status(201).json({ lead: inserted })
 }
