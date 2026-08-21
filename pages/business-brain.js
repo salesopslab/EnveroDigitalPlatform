@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import AppShell from '../components/AppShell'
 import { useRequireSession } from '../lib/useSession'
+import { fetchJson } from '../lib/fetchJson'
 
 const BRAND_VOICES = ['professional', 'friendly', 'educational', 'direct', 'premium', 'casual']
 const CONVERSION_GOALS = [
@@ -66,13 +67,11 @@ export default function BusinessBrain() {
     setAnalyzing(true)
     setMessage('')
     try {
-      const res = await fetch('/api/analyze-business', {
+      const data = await fetchJson('/api/analyze-business', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: form.website }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Analysis failed')
       const s = data.suggestions || {}
       setForm((f) => ({
         ...f,

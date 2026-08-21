@@ -7,6 +7,7 @@ import { useRouter } from 'next/router'
 import AppShell from '../components/AppShell'
 import { useRequireSession } from '../lib/useSession'
 import { supabase } from '../lib/supabaseClient'
+import { fetchJson } from '../lib/fetchJson'
 
 export default function Opportunities() {
   const router = useRouter()
@@ -32,11 +33,10 @@ export default function Opportunities() {
   async function generate() {
     setGenerating(true)
     try {
-      const res = await fetch('/api/generate-opportunities', {
+      await fetchJson('/api/generate-opportunities', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clientId: client.id }),
       })
-      if (!res.ok) throw new Error((await res.json()).error)
       await load()
     } catch (err) { alert(err.message) } finally { setGenerating(false) }
   }
@@ -49,12 +49,10 @@ export default function Opportunities() {
   async function createContent(id) {
     setCreatingId(id)
     try {
-      const res = await fetch('/api/generate-content', {
+      const data = await fetchJson('/api/generate-content', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clientId: client.id, opportunityId: id }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
       await load()
       router.push(`/content/${data.content.id}`)
     } catch (err) { alert(err.message) } finally { setCreatingId(null) }

@@ -8,6 +8,7 @@ import Link from 'next/link'
 import AppShell from '../components/AppShell'
 import { useRequireSession } from '../lib/useSession'
 import { supabase } from '../lib/supabaseClient'
+import { fetchJson } from '../lib/fetchJson'
 
 const RANGES = [
   { key: 7, label: 'Last 7 days' },
@@ -74,11 +75,10 @@ export default function Dashboard() {
   async function generateOpportunities() {
     setGenerating(true)
     try {
-      const res = await fetch('/api/generate-opportunities', {
+      await fetchJson('/api/generate-opportunities', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clientId: client.id }),
       })
-      if (!res.ok) throw new Error((await res.json()).error)
       await loadData()
     } catch (err) {
       alert(err.message)
@@ -133,6 +133,17 @@ export default function Dashboard() {
                 : gaData.organicUsers.toLocaleString()
           }
           small={!gaData || !gaData.connected || Boolean(gaData.error)}
+        />
+        <StatCard
+          label="Google Rating"
+          value={
+            !client.google_place_id
+              ? <Link href="/integrations" style={{ color: '#9ca3af', fontSize: 15 }}>— connect Google Reviews</Link>
+              : client.google_rating != null
+                ? `${client.google_rating.toFixed(1)} ★ (${client.google_review_count ?? 0})`
+                : <span style={{ color: '#9ca3af', fontSize: 14 }}>Not fetched yet</span>
+          }
+          small={!client.google_place_id || client.google_rating == null}
         />
         <StatCard label="Leads Generated" value={leads.length} />
         <StatCard label="Content Published" value={publishedInRange.length} />

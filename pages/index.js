@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Footer from '../components/Footer'
 
 const TIERS = [
   {
@@ -68,6 +69,8 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      <Footer />
     </div>
   )
 }

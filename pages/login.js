@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { supabase } from '../lib/supabaseClient'
+import Footer from '../components/Footer'
 
 export default function Login() {
   const router = useRouter()
@@ -63,6 +64,7 @@ export default function Login() {
         Don&apos;t have an account? <Link href="/signup" style={{ color: '#4f46e5' }}>Sign up</Link>
       </p>
       </div>
+      <Footer />
     </div>
   )
 }

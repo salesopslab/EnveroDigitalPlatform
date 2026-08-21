@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { supabase } from '../lib/supabaseClient'
+import Footer from '../components/Footer'
 
 export default function Signup() {
   const router = useRouter()
@@ -80,7 +81,11 @@ export default function Signup() {
       <p style={{ marginTop: 16, fontSize: 14, color: '#6b7280' }}>
         Already have an account? <Link href="/login" style={{ color: '#4f46e5' }}>Log in</Link>
       </p>
+      <p style={{ marginTop: 8, fontSize: 12, color: '#9ca3af' }}>
+        By signing up, you agree to our <Link href="/terms" style={{ color: '#9ca3af' }}>Terms of Service</Link> and <Link href="/privacy" style={{ color: '#9ca3af' }}>Privacy Policy</Link>.
+      </p>
       </div>
+      <Footer />
     </div>
   )
 }

@@ -8,6 +8,7 @@ import AppShell from '../../components/AppShell'
 import { useRequireSession } from '../../lib/useSession'
 import { supabase } from '../../lib/supabaseClient'
 import { computeSeoScore } from '../../lib/seoScore'
+import { fetchJson } from '../../lib/fetchJson'
 
 const MULTIPLIER_OPTIONS = [
   { contentType: 'social_post', platform: 'facebook', label: 'Facebook post' },
@@ -64,12 +65,10 @@ export default function ContentEditor() {
     if (!item.opportunity_id) { alert('This item has no linked opportunity to regenerate from.'); return }
     setBusy(true)
     try {
-      const res = await fetch('/api/generate-content', {
+      const data = await fetchJson('/api/generate-content', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clientId: client.id, opportunityId: item.opportunity_id }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
       router.push(`/content/${data.content.id}`)
     } catch (err) { alert(err.message) } finally { setBusy(false) }
   }
@@ -78,11 +77,10 @@ export default function ContentEditor() {
     if (selectedAssets.length === 0) return
     setBusy(true)
     try {
-      const res = await fetch('/api/multiply-content', {
+      const data = await fetchJson('/api/multiply-content', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clientId: client.id, contentId: id, assetTypes: selectedAssets }),
       })
-      const data = await res.json()
       if (data.errors?.length) console.warn(data.errors)
       setShowMultiplier(false)
       setSelectedAssets([])
