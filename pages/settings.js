@@ -140,6 +140,19 @@ export default function Settings() {
       </div>
 
       <div className="card" style={{ maxWidth: 480, marginBottom: 20 }}>
+        <h2 style={{ fontSize: 16, marginBottom: 4 }}>Partner conversion tracking</h2>
+        <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 10 }}>
+          For content pointed at a partner's own lander (set per content item in the
+          Content editor), give your partner this URL to call when a click converts.
+          They should echo back the <code>envero_click_id</code> we attach to the link
+          we send them, as <code>click_id</code>.
+        </p>
+        <p style={{ fontFamily: 'monospace', fontSize: 13, background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 6, padding: 10, wordBreak: 'break-all' }}>
+          https://enverodigital.com/api/postback?click_id={'{'}their_value_for_envero_click_id{'}'}&value={'{'}optional_dollar_amount{'}'}
+        </p>
+      </div>
+
+      <div className="card" style={{ maxWidth: 480, marginBottom: 20 }}>
         <h2 style={{ fontSize: 16, marginBottom: 4 }}>Your website</h2>
         <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 12 }}>
           Every published page lives here automatically — no setup required.

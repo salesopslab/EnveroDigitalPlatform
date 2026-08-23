@@ -135,6 +135,22 @@ export default function ContentEditor() {
             </div>
           )}
 
+          <div className="card" style={{ marginTop: 16 }}>
+            <p style={{ fontWeight: 600, marginBottom: 4 }}>Partner lander URL (optional)</p>
+            <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 10 }}>
+              If this business's leads go to a partner's own form instead of Envero's,
+              paste that page's URL here. Visitors get sent there instead of seeing an
+              inline form — the click is still tracked, and conversions the partner
+              reports back (see Integrations) show up in your Lead Center.
+            </p>
+            <input
+              placeholder="https://partner.example.com/get-a-quote"
+              defaultValue={item.lander_url || ''}
+              onBlur={(e) => supabase.from('content_items').update({ lander_url: e.target.value || null }).eq('id', id)}
+              style={{ marginBottom: 0 }}
+            />
+          </div>
+
           <div style={{ display: 'flex', gap: 10, marginTop: 20, flexWrap: 'wrap' }}>
             <button className="btn btn-secondary" onClick={improve} disabled={busy}>Improve</button>
             {item.status === 'draft' && <button className="btn btn-primary" onClick={() => setStatus('approved')} disabled={busy}>Approve</button>}

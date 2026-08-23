@@ -37,7 +37,7 @@ function labelFor(field) {
   return FIELD_LABELS[field] || field.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-export async function getServerSideProps({ params }) {
+export async function getServerSideProps({ params, query }) {
   const { subdomain, slug } = params
 
   const { data: client } = await supabaseAdmin
@@ -50,7 +50,7 @@ export async function getServerSideProps({ params }) {
 
   const { data: content } = await supabaseAdmin
     .from('content_items')
-    .select('id, title, slug, meta_description, body, content_type, published_at')
+    .select('id, title, slug, meta_description, body, content_type, published_at, lander_url')
     .eq('client_id', client.id)
     .eq('slug', slug)
     .eq('status', 'published')
@@ -76,11 +76,12 @@ export async function getServerSideProps({ params }) {
       client: { id: client.id, companyName: client.company_name },
       content,
       extraFields,
+      initialUtmSource: query.utm_source || null,
     },
   }
 }
 
-export default function PublicContentPage({ client, content, extraFields }) {
+export default function PublicContentPage({ client, content, extraFields, initialUtmSource }) {
   const [form, setForm] = useState({})
   const [status, setStatus] = useState('idle') // idle | submitting | done | error
   const [errorMsg, setErrorMsg] = useState('')
@@ -194,7 +195,19 @@ export default function PublicContentPage({ client, content, extraFields }) {
             Tell us a bit about what you're looking for and we'll follow up shortly.
           </p>
 
-          {status === 'done' ? (
+          {content.lander_url ? (
+            // Partner has their own lead form/lander — send the visitor
+            // there via /api/track-click so we still log the click and
+            // can match a later postback conversion back to it, without
+            // needing to match the partner's own lead-form schema.
+            <a
+              className="btn btn-primary"
+              style={{ width: '100%', display: 'block', textAlign: 'center' }}
+              href={`/api/track-click?contentItemId=${content.id}${initialUtmSource ? `&utm_source=${encodeURIComponent(initialUtmSource)}` : ''}`}
+            >
+              {content.ctaLabel || body.cta || 'Continue'}
+            </a>
+          ) : status === 'done' ? (
             <p style={{ fontWeight: 600, color: '#16a34a' }}>Thanks — we've got your info and will be in touch soon.</p>
           ) : (
             <form onSubmit={handleSubmit}>
