@@ -51,7 +51,14 @@ export default function AppShell({ children, client, onLogout }) {
           </button>
         </div>
       </aside>
-      <main className="app-main">{children}</main>
+      <main className="app-main">
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+          <span style={{ fontSize: 13, color: '#6b7280' }}>
+            Welcome, <strong style={{ color: '#111827' }}>{client?.company_name || 'your business'}</strong>
+          </span>
+        </div>
+        {children}
+      </main>
     </div>
   )
 }
