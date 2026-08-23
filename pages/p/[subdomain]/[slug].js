@@ -18,6 +18,7 @@ import Head from 'next/head'
 import { useState } from 'react'
 import { supabaseAdmin } from '../../../lib/supabaseAdmin'
 import { fetchJson } from '../../../lib/fetchJson'
+import { digitsOnly, isValidEmail, isValidPhone, isValidZip } from '../../../lib/leadValidation'
 
 // Fields every lead form always asks for, regardless of vertical.
 const BASE_FIELDS = ['name', 'email', 'phone']
@@ -84,13 +85,36 @@ export default function PublicContentPage({ client, content, extraFields }) {
   const [status, setStatus] = useState('idle') // idle | submitting | done | error
   const [errorMsg, setErrorMsg] = useState('')
 
+  // Fields where letters should never even be typeable — phone and any
+  // extra field that's clearly numeric (zip). Keeps bad input from ever
+  // reaching submit instead of only catching it after the fact.
+  const NUMERIC_FIELDS = ['phone', 'zip']
+
   function setField(key, value) {
-    setForm((prev) => ({ ...prev, [key]: value }))
+    const clean = NUMERIC_FIELDS.includes(key) ? digitsOnly(value) : value
+    setForm((prev) => ({ ...prev, [key]: clean }))
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
     if (!form.email) return
+
+    if (!isValidEmail(form.email)) {
+      setStatus('error')
+      setErrorMsg('Please enter a valid email address.')
+      return
+    }
+    if (form.phone && !isValidPhone(form.phone)) {
+      setStatus('error')
+      setErrorMsg('Please enter a valid 10-digit phone number.')
+      return
+    }
+    if (form.zip && !isValidZip(form.zip)) {
+      setStatus('error')
+      setErrorMsg('Please enter a valid 5-digit ZIP code.')
+      return
+    }
+
     setStatus('submitting')
     setErrorMsg('')
 
@@ -189,7 +213,9 @@ export default function PublicContentPage({ client, content, extraFields }) {
               />
               <input
                 type="tel"
-                placeholder="Phone"
+                inputMode="numeric"
+                maxLength={10}
+                placeholder="Phone (digits only)"
                 value={form.phone || ''}
                 onChange={(e) => setField('phone', e.target.value)}
               />
@@ -197,6 +223,8 @@ export default function PublicContentPage({ client, content, extraFields }) {
                 <input
                   key={f}
                   placeholder={labelFor(f)}
+                  inputMode={NUMERIC_FIELDS.includes(f) ? 'numeric' : undefined}
+                  maxLength={f === 'zip' ? 5 : undefined}
                   value={form[f] || ''}
                   onChange={(e) => setField(f, e.target.value)}
                 />

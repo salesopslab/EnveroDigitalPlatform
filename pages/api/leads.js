@@ -8,6 +8,7 @@
 
 import { supabaseAdmin } from '../../lib/supabaseAdmin'
 import { deliverWebhook } from '../../lib/webhookDelivery'
+import { isValidEmail, isValidPhone, isValidZip, digitsOnly } from '../../lib/leadValidation'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -19,6 +20,23 @@ export default async function handler(req, res) {
 
   if (!clientId || !email) return res.status(400).json({ error: 'clientId and email are required' })
 
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ error: 'Please enter a valid email address.' })
+  }
+  if (phone && !isValidPhone(phone)) {
+    return res.status(400).json({ error: 'Please enter a valid 10-digit phone number.' })
+  }
+  // `location` currently doubles as the ZIP field for verticals whose
+  // playbook includes it (see pages/p/[subdomain]/[slug].js) — only
+  // enforce ZIP format when it actually looks like one was intended
+  // (digits present), so non-automotive verticals using location for
+  // a city/state string aren't broken by this.
+  if (location && /\d/.test(location) && !isValidZip(location)) {
+    return res.status(400).json({ error: 'Please enter a valid 5-digit ZIP code.' })
+  }
+
+  const cleanPhone = phone ? digitsOnly(phone).slice(-10) : null
+
   const { data: inserted, error } = await supabaseAdmin
     .from('leads')
     .insert({
@@ -26,7 +44,7 @@ export default async function handler(req, res) {
       content_item_id: contentItemId || null,
       name: name || null,
       email,
-      phone: phone || null,
+      phone: cleanPhone,
       product_service: productService || null,
       location: location || null,
       source_url: sourceUrl || null,
