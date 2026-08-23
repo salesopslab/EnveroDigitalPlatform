@@ -121,6 +121,22 @@ export default function BusinessBrain() {
 
     setSaving(false)
     if (error) { setMessage(error.message); return }
+
+    // Give every client a free subdomain automatically — no DNS, no
+    // manual setup. Safe to call even on repeat saves: it's a no-op
+    // once a subdomain already exists.
+    try {
+      await fetchJson('/api/provision-subdomain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: session.user.id, companyName: form.company_name }),
+      })
+    } catch (err) {
+      // Non-fatal — the business profile still saved. Worst case,
+      // the subdomain gets provisioned on a later save instead.
+      console.error('Subdomain provisioning failed:', err.message)
+    }
+
     await reloadClient(session.user.id)
     router.push('/dashboard')
   }

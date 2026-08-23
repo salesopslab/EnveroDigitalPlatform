@@ -27,10 +27,14 @@ const STATUS_COLOR = {
 
 export default function Settings() {
   const router = useRouter()
-  const { client, session, loading, logout } = useRequireSession()
+  const { client, session, loading, logout, reloadClient } = useRequireSession()
   const [busyTier, setBusyTier] = useState(null)
   const [portalBusy, setPortalBusy] = useState(false)
   const [error, setError] = useState('')
+
+  const [domainInput, setDomainInput] = useState('')
+  const [domainBusy, setDomainBusy] = useState(false)
+  const [domainMessage, setDomainMessage] = useState(null) // { verified, detail, target }
 
   async function authedFetch(url, body) {
     const { data: { session: fresh } } = await supabase.auth.getSession()
@@ -69,6 +73,24 @@ export default function Settings() {
     } catch (err) {
       setError(err.message)
       setPortalBusy(false)
+    }
+  }
+
+  async function verifyDomain(e) {
+    e.preventDefault()
+    if (!domainInput) return
+    setDomainBusy(true)
+    setDomainMessage(null)
+    try {
+      const res = await authedFetch('/api/verify-custom-domain', { clientId: client.id, domain: domainInput })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not verify domain')
+      setDomainMessage(data)
+      await reloadClient(session.user.id)
+    } catch (err) {
+      setDomainMessage({ verified: false, detail: err.message })
+    } finally {
+      setDomainBusy(false)
     }
   }
 
@@ -114,6 +136,67 @@ export default function Settings() {
           <button className="btn btn-primary" onClick={openPortal} disabled={portalBusy}>
             {portalBusy ? 'Opening…' : 'Manage Billing'}
           </button>
+        )}
+      </div>
+
+      <div className="card" style={{ maxWidth: 480, marginBottom: 20 }}>
+        <h2 style={{ fontSize: 16, marginBottom: 4 }}>Your website</h2>
+        <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 12 }}>
+          Every published page lives here automatically — no setup required.
+        </p>
+        {client.subdomain ? (
+          <p style={{ marginBottom: 16 }}>
+            <a href={`https://${client.subdomain}.enverodigital.com`} target="_blank" rel="noreferrer">
+              {client.subdomain}.enverodigital.com
+            </a>
+          </p>
+        ) : (
+          <p style={{ color: '#9ca3af', fontSize: 13, marginBottom: 16 }}>
+            Your free subdomain will appear here after you save your Business Brain.
+          </p>
+        )}
+
+        <h2 style={{ fontSize: 16, marginBottom: 4 }}>Connect your own domain</h2>
+        <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 12 }}>
+          Already have a domain? Point it here so your content builds SEO value on your
+          own site instead of ours.
+        </p>
+
+        {client.custom_domain && (
+          <p style={{ fontSize: 14, marginBottom: 12 }}>
+            Current: <strong>{client.custom_domain}</strong>{' '}
+            {client.custom_domain_verified ? (
+              <span style={{ color: '#166534' }}>✓ Verified</span>
+            ) : (
+              <span style={{ color: '#b45309' }}>Not yet verified</span>
+            )}
+          </p>
+        )}
+
+        <form onSubmit={verifyDomain} style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          <input
+            value={domainInput}
+            onChange={(e) => setDomainInput(e.target.value)}
+            placeholder="deals.yourbusiness.com"
+            style={{ marginBottom: 0 }}
+          />
+          <button type="submit" className="btn btn-secondary" disabled={domainBusy} style={{ whiteSpace: 'nowrap' }}>
+            {domainBusy ? 'Checking…' : 'Save & Verify'}
+          </button>
+        </form>
+
+        <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: 12, fontSize: 13, color: '#4b5563' }}>
+          <p style={{ marginBottom: 6 }}>To connect a domain, add this record with your domain provider:</p>
+          <p style={{ fontFamily: 'monospace', marginBottom: 6 }}>
+            Type: CNAME &nbsp;·&nbsp; Name: (your subdomain, e.g. "deals") &nbsp;·&nbsp; Value: {process.env.NEXT_PUBLIC_NETLIFY_SITE_DOMAIN || 'your-envero-host (see Integrations)'}
+          </p>
+          <p>DNS changes can take a few minutes up to a few hours to take effect.</p>
+        </div>
+
+        {domainMessage && (
+          <p style={{ marginTop: 12, fontSize: 13, color: domainMessage.verified ? '#166534' : '#b45309' }}>
+            {domainMessage.detail}
+          </p>
         )}
       </div>
 
