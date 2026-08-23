@@ -146,9 +146,9 @@ export default function Settings() {
         </p>
         {client.subdomain ? (
           <p style={{ marginBottom: 16 }}>
-            <a href={`https://${client.subdomain}.enverodigital.com`} target="_blank" rel="noreferrer">
-              {client.subdomain}.enverodigital.com
-            </a>
+            <strong>{client.subdomain}.enverodigital.com</strong> — published content
+            pages appear at <code>{client.subdomain}.enverodigital.com/[page-slug]</code>.
+            Find exact links on the Content page once a piece is published.
           </p>
         ) : (
           <p style={{ color: '#9ca3af', fontSize: 13, marginBottom: 16 }}>
