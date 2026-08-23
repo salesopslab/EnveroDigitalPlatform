@@ -30,6 +30,8 @@ export default function ContentEditor() {
   const [busy, setBusy] = useState(false)
   const [selectedAssets, setSelectedAssets] = useState([])
   const [showMultiplier, setShowMultiplier] = useState(false)
+  const [landerUrl, setLanderUrl] = useState('')
+  const [landerSaveStatus, setLanderSaveStatus] = useState('idle') // idle | saving | saved | error
 
   useEffect(() => {
     if (client && id) load()
@@ -39,8 +41,24 @@ export default function ContentEditor() {
   async function load() {
     const { data } = await supabase.from('content_items').select('*').eq('id', id).single()
     setItem(data)
+    setLanderUrl(data?.lander_url || '')
     const { data: kids } = await supabase.from('content_items').select('*').eq('parent_content_id', id)
     setDerivatives(kids || [])
+  }
+
+  async function saveLanderUrl() {
+    setLanderSaveStatus('saving')
+    const { error } = await supabase
+      .from('content_items')
+      .update({ lander_url: landerUrl || null })
+      .eq('id', id)
+    if (error) {
+      setLanderSaveStatus('error')
+      return
+    }
+    setItem((prev) => ({ ...prev, lander_url: landerUrl || null }))
+    setLanderSaveStatus('saved')
+    setTimeout(() => setLanderSaveStatus('idle'), 2500)
   }
 
   async function setStatus(status) {
@@ -145,10 +163,26 @@ export default function ContentEditor() {
             </p>
             <input
               placeholder="https://partner.example.com/get-a-quote"
-              defaultValue={item.lander_url || ''}
-              onBlur={(e) => supabase.from('content_items').update({ lander_url: e.target.value || null }).eq('id', id)}
-              style={{ marginBottom: 0 }}
+              value={landerUrl}
+              onChange={(e) => { setLanderUrl(e.target.value); setLanderSaveStatus('idle') }}
+              style={{ marginBottom: 10 }}
             />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button
+                className="btn btn-primary"
+                onClick={saveLanderUrl}
+                disabled={landerSaveStatus === 'saving'}
+                style={{ fontSize: 13, padding: '8px 14px' }}
+              >
+                {landerSaveStatus === 'saving' ? 'Saving…' : 'Save'}
+              </button>
+              {landerSaveStatus === 'saved' && (
+                <span style={{ color: '#166534', fontSize: 13 }}>✓ Saved</span>
+              )}
+              {landerSaveStatus === 'error' && (
+                <span style={{ color: '#dc2626', fontSize: 13 }}>Couldn't save — try again</span>
+              )}
+            </div>
           </div>
 
           <div style={{ display: 'flex', gap: 10, marginTop: 20, flexWrap: 'wrap' }}>
