@@ -37,7 +37,7 @@ function labelFor(field) {
   return FIELD_LABELS[field] || field.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-export async function getServerSideProps({ params, query }) {
+export async function getServerSideProps({ params, query, req }) {
   const { subdomain, slug } = params
 
   const { data: client } = await supabaseAdmin
@@ -57,6 +57,21 @@ export async function getServerSideProps({ params, query }) {
     .single()
 
   if (!content) return { notFound: true }
+
+  // Log the view -- best effort, never let a logging failure break the
+  // actual page render for a real visitor.
+  try {
+    await supabaseAdmin.from('content_page_views').insert({
+      client_id: client.id,
+      content_item_id: content.id,
+      utm_source: query.utm_source || null,
+      utm_campaign: query.utm_campaign || null,
+      utm_content: query.utm_content || null,
+      referrer: req.headers.referer || null,
+    })
+  } catch (err) {
+    console.error('Failed to log page view:', err.message)
+  }
 
   let extraFields = []
   if (client.industry) {

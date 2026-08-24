@@ -19,21 +19,26 @@ export default function Analytics() {
   useEffect(() => {
     if (!client) return
     (async () => {
-      const [{ data: content }, { data: leads }, { data: clicks }] = await Promise.all([
+      const [{ data: content }, { data: leads }, { data: clicks }, { data: views }] = await Promise.all([
         supabase.from('content_items').select('*').eq('client_id', client.id).eq('status', 'published'),
         supabase.from('leads').select('*').eq('client_id', client.id),
         supabase.from('outbound_clicks').select('content_item_id').eq('client_id', client.id),
+        supabase.from('content_page_views').select('content_item_id').eq('client_id', client.id),
       ])
       const clickCounts = {}
       ;(clicks || []).forEach((c) => {
         if (!c.content_item_id) return
         clickCounts[c.content_item_id] = (clickCounts[c.content_item_id] || 0) + 1
       })
+      const viewCounts = {}
+      ;(views || []).forEach((v) => {
+        viewCounts[v.content_item_id] = (viewCounts[v.content_item_id] || 0) + 1
+      })
       const combined = (content || []).map((c) => {
         const contentLeads = (leads || []).filter((l) => l.content_item_id === c.id)
         const sold = contentLeads.filter((l) => l.status === 'sold')
         const revenue = sold.reduce((sum, l) => sum + (Number(l.lead_value) || 0), 0)
-        return { ...c, leadCount: contentLeads.length, soldCount: sold.length, revenue, clickCount: clickCounts[c.id] || 0 }
+        return { ...c, leadCount: contentLeads.length, soldCount: sold.length, revenue, clickCount: clickCounts[c.id] || 0, viewCount: viewCounts[c.id] || 0 }
       }).sort((a, b) => b.revenue - a.revenue)
       setRows(combined)
     })()
@@ -88,12 +93,11 @@ export default function Analytics() {
               {rows.map((r) => (
                 <tr key={r.id}>
                   <td>{r.title || 'Untitled'}</td>
-                  <td style={{ color: r.clickCount > 0 ? undefined : '#9ca3af' }}>
-                    {r.clickCount > 0
-                      ? `${r.clickCount.toLocaleString()} click${r.clickCount === 1 ? '' : 's'}`
-                      : r.lander_url
-                        ? '0 clicks'
-                        : '—'}
+                  <td style={{ color: r.viewCount > 0 ? undefined : '#9ca3af' }}>
+                    {r.viewCount.toLocaleString()} view{r.viewCount === 1 ? '' : 's'}
+                    {r.lander_url && (
+                      <span style={{ color: '#9ca3af' }}> · {r.clickCount.toLocaleString()} click{r.clickCount === 1 ? '' : 's'}</span>
+                    )}
                   </td>
                   <td>{r.leadCount}</td>
                   <td>{r.soldCount}</td>
