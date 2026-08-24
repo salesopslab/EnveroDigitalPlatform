@@ -37,6 +37,13 @@ export default async function handler(req, res) {
 
   if (!click) return res.status(404).json({ error: 'Unknown click_id' })
 
+  // Idempotency guard: a page refresh, back-button, or double-fire of a
+  // client-side pixel (see settings page instructions) shouldn't create
+  // a second duplicate lead for the same conversion.
+  if (click.converted) {
+    return res.status(200).json({ ok: true, alreadyProcessed: true })
+  }
+
   await supabaseAdmin
     .from('outbound_clicks')
     .update({ converted: true, converted_at: new Date().toISOString(), conversion_value: value })
