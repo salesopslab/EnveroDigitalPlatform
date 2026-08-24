@@ -17,6 +17,7 @@
 // ============================================================
 
 import { supabaseAdmin } from '../../lib/supabaseAdmin'
+import { deliverWebhook } from '../../lib/webhookDelivery'
 
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
@@ -52,7 +53,7 @@ export default async function handler(req, res) {
   // Surface this as a real lead too, so it shows up wherever the rest
   // of the app already looks (Lead Center, Analytics attribution) --
   // not just in the outbound_clicks table nobody else sees.
-  await supabaseAdmin.from('leads').insert({
+  const { data: insertedLead } = await supabaseAdmin.from('leads').insert({
     client_id: click.client_id,
     content_item_id: click.content_item_id,
     name: params.name || null,
@@ -66,7 +67,29 @@ export default async function handler(req, res) {
     status: 'sold', // a postback means the partner already confirmed
     // this converted -- treat it as further along than "new", since
     // no further Envero-side qualification step applies here.
-  })
+  }).select().single()
+
+  // Fire the same lead.created webhook /api/leads.js fires for direct
+  // leads -- without this, partner-sourced conversions would silently
+  // never reach the client's CRM/Zapier, even though they show up in
+  // Envero's own Lead Center. Same non-blocking pattern: this never
+  // fails the postback response, it just logs the outcome.
+  const { data: clientRow } = await supabaseAdmin
+    .from('clients')
+    .select('lead_webhook_url')
+    .eq('id', click.client_id)
+    .single()
+
+  if (clientRow?.lead_webhook_url && insertedLead) {
+    await deliverWebhook({
+      supabaseAdmin,
+      clientId: click.client_id,
+      url: clientRow.lead_webhook_url,
+      event: 'lead.created',
+      leadId: insertedLead.id,
+      payload: { lead: insertedLead, source: 'partner_postback' },
+    })
+  }
 
   res.status(200).json({ ok: true })
 }

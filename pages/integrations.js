@@ -228,13 +228,43 @@ export default function Integrations() {
 
         {deliveries.length > 0 && (
           <div style={{ marginTop: 16, borderTop: '1px solid #e5e7eb', paddingTop: 12 }}>
-            <p style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 8 }}>Recent deliveries</p>
-            {deliveries.map((d) => (
-              <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0', color: d.success ? '#166534' : '#dc2626' }}>
-                <span>{d.event}{d.status_code ? ` · ${d.status_code}` : ''}{d.error ? ` · ${d.error}` : ''}</span>
-                <span style={{ color: '#9ca3af' }}>{new Date(d.created_at).toLocaleString()}</span>
-              </div>
-            ))}
+            <p style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 10 }}>Recent deliveries</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {deliveries.map((d) => {
+                const eventLabels = { 'lead.created': 'Lead captured', 'webhook.test': 'Test ping' }
+                return (
+                  <div
+                    key={d.id}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      fontSize: 13, padding: '8px 10px', borderRadius: 6,
+                      background: d.success ? '#f0fdf4' : '#fef2f2',
+                      border: `1px solid ${d.success ? '#bbf7d0' : '#fecaca'}`,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                      <span style={{ color: d.success ? '#16a34a' : '#dc2626', fontWeight: 700, flexShrink: 0 }}>
+                        {d.success ? '✓' : '✕'}
+                      </span>
+                      <span style={{ fontWeight: 600, color: '#111827' }}>{eventLabels[d.event] || d.event}</span>
+                      {d.status_code && (
+                        <span style={{ fontSize: 11, color: '#6b7280', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 4, padding: '1px 6px' }}>
+                          {d.status_code}
+                        </span>
+                      )}
+                      {d.error && (
+                        <span style={{ fontSize: 12, color: '#dc2626', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={d.error}>
+                          {d.error}
+                        </span>
+                      )}
+                    </div>
+                    <span style={{ color: '#9ca3af', fontSize: 12, flexShrink: 0, marginLeft: 12 }}>
+                      {new Date(d.created_at).toLocaleString()}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
       </div>
