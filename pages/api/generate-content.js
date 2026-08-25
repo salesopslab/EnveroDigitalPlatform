@@ -46,12 +46,33 @@ Product/service: ${opportunity.product_service || 'n/a'}`,
     const jsonMatch = raw.match(/\{[\s\S]*\}/)
     const draft = JSON.parse(jsonMatch ? jsonMatch[0] : raw)
 
+    const baseSlug = draft.slug ? slugify(draft.slug) : slugify(draft.title)
+
+    // Slugs must be unique per client, but the AI can independently
+    // generate the same title/slug for two different opportunities
+    // (e.g. regenerating, or two similar keywords). Rather than let
+    // that surface as a raw "duplicate key" database error, find the
+    // next free slug the same way subdomain provisioning already does.
+    let slug = baseSlug
+    let suffix = 2
+    while (true) {
+      const { data: collision } = await supabaseAdmin
+        .from('content_items')
+        .select('id')
+        .eq('client_id', clientId)
+        .eq('slug', slug)
+        .maybeSingle()
+      if (!collision) break
+      slug = `${baseSlug}-${suffix}`
+      suffix += 1
+    }
+
     const contentRow = {
       client_id: clientId,
       opportunity_id: opportunityId,
       content_type: opportunity.content_type,
       title: draft.title,
-      slug: draft.slug ? slugify(draft.slug) : slugify(draft.title),
+      slug,
       meta_description: draft.meta_description,
       body: {
         headings: draft.headings || [],
