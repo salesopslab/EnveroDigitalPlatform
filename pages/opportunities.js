@@ -76,6 +76,11 @@ export default function Opportunities() {
         </button>
       </div>
 
+      <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 14 }}>
+        <strong>Create content</strong> works right away — you don't need to approve first.
+        <strong> Save for later</strong> just flags something as worth doing, without generating anything yet.
+      </p>
+
       <div className="card" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
         <input placeholder="Filter by product" value={filters.product} onChange={(e) => setFilters((f) => ({ ...f, product: e.target.value }))} style={{ marginBottom: 0, maxWidth: 180 }} />
         <input placeholder="Filter by location" value={filters.market} onChange={(e) => setFilters((f) => ({ ...f, market: e.target.value }))} style={{ marginBottom: 0, maxWidth: 180 }} />
@@ -110,13 +115,23 @@ export default function Opportunities() {
                   <td>{o.difficulty ?? '—'}</td>
                   <td><span className={`status-pill status-${o.status}`}>{o.status.replace('_', ' ')}</span></td>
                   <td style={{ whiteSpace: 'nowrap' }}>
-                    {o.status === 'new' && <button className="btn btn-secondary" style={{ fontSize: 12, padding: '6px 10px' }} onClick={() => approve(o.id)}>Approve</button>}
+                    {o.status === 'new' && (
+                      <button
+                        className="btn btn-secondary"
+                        style={{ fontSize: 12, padding: '6px 10px' }}
+                        onClick={() => approve(o.id)}
+                        title="Marks this as worth doing later — doesn't generate anything yet, and isn't required before Create content."
+                      >
+                        Save for later
+                      </button>
+                    )}
                     {(o.status === 'approved' || o.status === 'new') && (
                       <button
                         className="btn btn-primary"
                         style={{ fontSize: 12, padding: '6px 10px', marginLeft: 6 }}
                         onClick={() => createContent(o.id)}
                         disabled={creatingId === o.id}
+                        title="Generates the content now — works right away, no need to approve first."
                       >
                         {creatingId === o.id ? 'Creating…' : 'Create content'}
                       </button>
