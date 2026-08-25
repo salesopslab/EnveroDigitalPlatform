@@ -6,7 +6,7 @@
 // (the webhook is what actually activates a plan, not this page).
 // ============================================================
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import AppShell from '../components/AppShell'
 import { useRequireSession } from '../lib/useSession'
@@ -33,6 +33,8 @@ export default function Settings() {
   const [error, setError] = useState('')
 
   const [domainInput, setDomainInput] = useState('')
+  const [defaultLander, setDefaultLander] = useState('')
+  const [defaultLanderStatus, setDefaultLanderStatus] = useState('idle')
   const [domainBusy, setDomainBusy] = useState(false)
   const [domainMessage, setDomainMessage] = useState(null) // { verified, detail, target }
 
@@ -76,6 +78,20 @@ export default function Settings() {
     }
   }
 
+  async function saveDefaultLander() {
+    setDefaultLanderStatus('saving')
+    const { error } = await supabase
+      .from('clients')
+      .update({ default_lander_url: defaultLander || null })
+      .eq('id', client.id)
+    if (error) {
+      setDefaultLanderStatus('error')
+      return
+    }
+    setDefaultLanderStatus('saved')
+    setTimeout(() => setDefaultLanderStatus('idle'), 2500)
+  }
+
   async function verifyDomain(e) {
     e.preventDefault()
     if (!domainInput) return
@@ -93,6 +109,10 @@ export default function Settings() {
       setDomainBusy(false)
     }
   }
+
+  useEffect(() => {
+    if (client?.default_lander_url) setDefaultLander(client.default_lander_url)
+  }, [client?.default_lander_url])
 
   if (loading || !client) return <div className="container" style={{ paddingTop: 80 }}>Loading...</div>
 
@@ -168,6 +188,33 @@ export default function Settings() {
             Your free subdomain will appear here after you save your Business Brain.
           </p>
         )}
+
+        <h2 style={{ fontSize: 16, marginBottom: 4 }}>Default partner lander</h2>
+        <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 10 }}>
+          If your leads always go to a partner's own form instead of Envero's, set
+          it here once — every content page will use it automatically. Individual
+          content items can still override this with their own lander URL (in the
+          Content editor) when needed.
+        </p>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+          <input
+            value={defaultLander}
+            onChange={(e) => { setDefaultLander(e.target.value); setDefaultLanderStatus('idle') }}
+            placeholder="https://yoursite.com/get-a-quote"
+            style={{ marginBottom: 0 }}
+          />
+          <button
+            className="btn btn-primary"
+            onClick={saveDefaultLander}
+            disabled={defaultLanderStatus === 'saving'}
+            style={{ whiteSpace: 'nowrap' }}
+          >
+            {defaultLanderStatus === 'saving' ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+        {defaultLanderStatus === 'saved' && <p style={{ color: '#166534', fontSize: 13, marginBottom: 16 }}>✓ Saved</p>}
+        {defaultLanderStatus === 'error' && <p style={{ color: '#dc2626', fontSize: 13, marginBottom: 16 }}>Couldn't save — try again</p>}
+        {defaultLanderStatus === 'idle' && <div style={{ marginBottom: 16 }} />}
 
         <h2 style={{ fontSize: 16, marginBottom: 4 }}>Connect your own domain</h2>
         <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 12 }}>

@@ -156,10 +156,10 @@ export default function ContentEditor() {
           <div className="card" style={{ marginTop: 16 }}>
             <p style={{ fontWeight: 600, marginBottom: 4 }}>Partner lander URL (optional)</p>
             <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 10 }}>
-              If this business's leads go to a partner's own form instead of Envero's,
-              paste that page's URL here. Visitors get sent there instead of seeing an
-              inline form — the click is still tracked, and conversions the partner
-              reports back (see Integrations) show up in your Lead Center.
+              If this specific piece of content should go somewhere different than your
+              account's usual lander (set in Settings), paste that URL here. Leave blank
+              to use your account default — or Envero's own inline form if no default
+              is set either.
             </p>
             <input
               placeholder="https://partner.example.com/get-a-quote"

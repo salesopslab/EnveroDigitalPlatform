@@ -42,7 +42,7 @@ export async function getServerSideProps({ params, query, req }) {
 
   const { data: client } = await supabaseAdmin
     .from('clients')
-    .select('id, company_name, industry, subdomain')
+    .select('id, company_name, industry, subdomain, default_lander_url')
     .eq('subdomain', subdomain)
     .single()
 
@@ -57,6 +57,10 @@ export async function getServerSideProps({ params, query, req }) {
     .single()
 
   if (!content) return { notFound: true }
+
+  // Per-item lander_url overrides the account-level default; if neither
+  // is set, the page falls back to Envero's own inline lead form.
+  content.lander_url = content.lander_url || client.default_lander_url || null
 
   // Log the view -- best effort, never let a logging failure break the
   // actual page render for a real visitor.

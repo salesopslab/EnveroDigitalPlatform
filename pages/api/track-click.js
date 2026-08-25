@@ -24,8 +24,20 @@ export default async function handler(req, res) {
     .eq('id', contentItemId)
     .single()
 
-  if (!item || !item.lander_url) {
-    return res.status(404).json({ error: 'No lander configured for this content item' })
+  if (!item) return res.status(404).json({ error: 'Content item not found' })
+
+  let landerUrl = item.lander_url
+  if (!landerUrl) {
+    const { data: clientRow } = await supabaseAdmin
+      .from('clients')
+      .select('default_lander_url')
+      .eq('id', item.client_id)
+      .single()
+    landerUrl = clientRow?.default_lander_url || null
+  }
+
+  if (!landerUrl) {
+    return res.status(404).json({ error: 'No lander configured for this content item or account' })
   }
 
   const clickToken = crypto.randomUUID()
@@ -34,7 +46,7 @@ export default async function handler(req, res) {
     client_id: item.client_id,
     content_item_id: item.id,
     click_token: clickToken,
-    lander_url: item.lander_url,
+    lander_url: landerUrl,
     utm_source: utm_source || null,
     utm_campaign: utm_campaign || null,
     utm_content: utm_content || null,
@@ -43,7 +55,7 @@ export default async function handler(req, res) {
 
   // Attach our click token to whatever query string the partner's URL
   // already has, so we don't clobber any params they require.
-  const destination = new URL(item.lander_url)
+  const destination = new URL(landerUrl)
   destination.searchParams.set('envero_click_id', clickToken)
 
   res.writeHead(302, { Location: destination.toString() })
