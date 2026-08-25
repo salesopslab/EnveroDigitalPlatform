@@ -115,7 +115,27 @@ export default function ContentEditor() {
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
         <div style={{ flex: '2 1 480px', minWidth: 320 }}>
           <h1 style={{ fontSize: 22, marginBottom: 4 }}>{item.title || 'Untitled'}</h1>
-          <p style={{ color: '#6b7280', marginBottom: 20 }}>{item.content_type.replace('_', ' ')} · <span className={`status-pill status-${item.status}`}>{item.status}</span></p>
+          <p style={{ color: '#6b7280', marginBottom: 8 }}>{item.content_type.replace('_', ' ')} · <span className={`status-pill status-${item.status}`}>{item.status}</span></p>
+
+          {item.status === 'published' && item.slug && (
+            client?.subdomain ? (
+              <p style={{ marginBottom: 20 }}>
+                <a
+                  href={`https://enverodigital.com/p/${client.subdomain}/${item.slug}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ fontSize: 13 }}
+                >
+                  View live page →
+                </a>
+              </p>
+            ) : (
+              <p style={{ fontSize: 13, color: '#9ca3af', marginBottom: 20 }}>
+                Live page not available yet — no subdomain is set for this account. Save your
+                Business Brain once to get one automatically.
+              </p>
+            )
+          )}
 
           <div className="card" style={{ marginBottom: 16 }}>
             <p style={{ fontWeight: 600, marginBottom: 6 }}>Meta description</p>
