@@ -124,7 +124,7 @@ export default function ContentEditor() {
                   href={`https://enverodigital.com/p/${client.subdomain}/${item.slug}`}
                   target="_blank"
                   rel="noreferrer"
-                  style={{ fontSize: 13 }}
+                  style={{ fontSize: 16, fontWeight: 700 }}
                 >
                   View live page →
                 </a>
